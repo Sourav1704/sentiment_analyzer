@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sentiment Analyzer</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+        }
+
+        .chat-container {
+            width: 420px;
+            height: 620px;
+            background: rgba(0,0,0,0.75);
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+        }
+
+        .header {
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            background: #111;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .msg {
+            margin: 10px 0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+
+        .user {
+            background: #1e90ff;
+            align-self: flex-end;
+        }
+
+        .bot {
+            background: #333;
+            align-self: flex-start;
+        }
+
+        .positive-msg { box-shadow: 0 0 10px #00ff9d; }
+        .negative-msg { box-shadow: 0 0 10px #ff4b5c; }
+
+        .input-area {
+            display: flex;
+            padding: 10px;
+            background: #111;
+        }
+
+        input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+        }
+
+        button {
+            margin-left: 10px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            background: #ff4b2b;
+            color: white;
+            cursor: pointer;
+        }
+
+        .bar {
+            margin-top: 8px;
+            height: 6px;
+            background: #222;
+            border-radius: 5px;
+        }
+
+        .fill {
+            height: 100%;
+            transition: width 0.6s ease;
+        }
+
+        .positive { background: #00ff9d; }
+        .negative { background: #ff4b5c; }
+    </style>
+</head>
+
+<body>
+
+<div class="chat-container">
+    <div class="header">🤖 Sentiment Analyzer</div>
+
+    <div id="chatBox" class="chat-box"></div>
+
+    <div class="input-area">
+        <input id="text" placeholder="Type your message...">
+        <button onclick="analyze()">Send</button>
+    </div>
+</div>
+
+<script>
+let input = document.getElementById("text");
+let chatBox = document.getElementById("chatBox");
+
+input.addEventListener("keypress", function(e) {
+    if (e.key === "Enter") analyze();
+});
+
+function addMessage(text, className) {
+    let div = document.createElement("div");
+    div.className = "msg " + className;
+    div.innerHTML = text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return div;
+}
+
+async function analyze() {
+    let text = input.value;
+    if (!text) return;
+
+    addMessage(text, "user");
+    input.value = "";
+
+    let botMsg = addMessage("🤖 Thinking...", "bot");
+
+    try {
+        let response = await fetch("http://localhost:5002/?text=" + encodeURIComponent(text));
+        let data = await response.json();
+
+        if (data.error) {
+            botMsg.innerHTML = "❌ " + data.error;
+            return;
+        }
+
+        let sentiment = data.sentiment;
+        let percentage = data.percentage;
+
+        let resultText = (sentiment === "Positive" ? "😊 Positive" : "😞 Negative") +
+                         " (" + percentage + "%)";
+
+        botMsg.innerHTML = resultText;
+        botMsg.classList.add(sentiment === "Positive" ? "positive-msg" : "negative-msg");
+
+        let bar = document.createElement("div");
+        bar.className = "bar";
+
+        let fill = document.createElement("div");
+        fill.className = "fill " + (sentiment === "Positive" ? "positive" : "negative");
+        fill.style.width = percentage + "%";
+
+        bar.appendChild(fill);
+        botMsg.appendChild(bar);
+
+    } catch (error) {
+        botMsg.innerHTML = "❌ Error connecting to server";
+        console.error(error);
+    }
+}
+</script>
+
+</body>
+</html>
